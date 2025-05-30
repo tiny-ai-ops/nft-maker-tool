@@ -1,10 +1,10 @@
 import React, { useState } from 'react'
 import { useProjectStore } from '../stores/projectStore'
-import { Download, Package, Settings, FileText, Loader2, Image as ImageIcon } from 'lucide-react'
+import { Download, Package, Settings, FileText, Loader2, Image as ImageIcon, Sparkles } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 import { NFTMetadata, GeneratedNFT } from '../types'
 import JSZip from 'jszip'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 
 interface BatchGeneratorProps {
   projectId: string
@@ -12,11 +12,11 @@ interface BatchGeneratorProps {
 
 // 预设尺寸选项
 const PRESET_SIZES = [
-  { label: '512x512', width: 512, height: 512 },
-  { label: '1024x1024', width: 1024, height: 1024 },
-  { label: '2048x2048', width: 2048, height: 2048 },
-  { label: '3000x3000', width: 3000, height: 3000 },
-  { label: '4000x4000', width: 4000, height: 4000 }
+  { label: '512x512', width: 512, height: 512, popular: false },
+  { label: '1024x1024', width: 1024, height: 1024, popular: true },
+  { label: '2048x2048', width: 2048, height: 2048, popular: true },
+  { label: '3000x3000', width: 3000, height: 3000, popular: false },
+  { label: '4000x4000', width: 4000, height: 4000, popular: false }
 ]
 
 export default function BatchGenerator({ projectId }: BatchGeneratorProps) {
@@ -218,8 +218,9 @@ export default function BatchGenerator({ projectId }: BatchGeneratorProps) {
     if (type === 'images' || type === 'all') {
       const imagesFolder = zip.folder('images')
       generatedNFTs.forEach((nft) => {
-        const imageData = nft.imageData.split(',')[1] // 移除 data:image/png;base64,
-        imagesFolder?.file(`${nft.id}.png`, imageData, { base64: true })
+        const imageData = nft.imageData.split(',')[1] // 移除 data:image/png;base64, 或 data:image/jpeg;base64,
+        const extension = imageFormat === 'jpg' ? 'jpg' : 'png'
+        imagesFolder?.file(`${nft.id}.${extension}`, imageData, { base64: true })
       })
     }
 
@@ -248,249 +249,373 @@ export default function BatchGenerator({ projectId }: BatchGeneratorProps) {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-white rounded-xl shadow-lg p-6 space-y-6"
+      className="card space-y-8"
     >
-      <div className="space-y-4">
-        <h2 className="text-2xl font-bold text-gray-900">批量生成</h2>
+      {/* 标题区域 */}
+      <div className="text-center space-y-2">
+        <div className="flex items-center justify-center space-x-3 mb-4">
+          <div className="h-12 w-12 bg-gradient-to-br from-blue-500 via-purple-600 to-pink-500 
+                        rounded-2xl flex items-center justify-center shadow-lg shadow-blue-500/25">
+            <Sparkles className="h-6 w-6 text-white" />
+          </div>
+          <h2 className="text-3xl font-bold gradient-text">批量生成</h2>
+        </div>
+        <p className="text-gray-600">配置参数，一键生成整个NFT系列</p>
+      </div>
+      
+      {/* 图片设置部分 */}
+      <motion.div 
+        initial={{ opacity: 0, x: -20 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ delay: 0.1 }}
+        className="space-y-6"
+      >
+        <div className="flex items-center space-x-3">
+          <div className="h-8 w-8 bg-gradient-to-r from-blue-500 to-purple-600 
+                        rounded-lg flex items-center justify-center">
+            <ImageIcon className="h-4 w-4 text-white" />
+          </div>
+          <h3 className="text-xl font-bold text-gray-900">图片设置</h3>
+        </div>
         
-        {/* 图片设置部分 */}
-        <div className="space-y-4 border-b border-gray-200 pb-4">
-          <h3 className="text-lg font-semibold text-gray-900 flex items-center">
-            <ImageIcon className="w-5 h-5 mr-2" />
-            图片设置
-          </h3>
-          
-          {/* 尺寸设置 */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                预设尺寸
-              </label>
-              <select
-                value={selectedPresetSize}
-                onChange={(e) => {
-                  setSelectedPresetSize(e.target.value)
-                  if (e.target.value) {
-                    const size = PRESET_SIZES.find(s => s.label === e.target.value)
-                    if (size) {
-                      setCustomWidth(size.width)
-                      setCustomHeight(size.height)
-                    }
-                  }
+        {/* 尺寸设置 */}
+        <div className="space-y-4">
+          <label className="block text-sm font-semibold text-gray-700 mb-3">
+            选择尺寸
+          </label>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            {PRESET_SIZES.map(size => (
+              <motion.button
+                key={size.label}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => {
+                  setSelectedPresetSize(size.label)
+                  setCustomWidth(size.width)
+                  setCustomHeight(size.height)
                 }}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className={`relative p-4 rounded-xl border-2 transition-all duration-300 ${
+                  selectedPresetSize === size.label
+                    ? 'border-blue-500 bg-blue-50/50 shadow-lg shadow-blue-500/20'
+                    : 'border-gray-200 bg-white/50 hover:border-gray-300 hover:bg-white/80'
+                }`}
               >
-                <option value="">自定义尺寸</option>
-                {PRESET_SIZES.map(size => (
-                  <option key={size.label} value={size.label}>{size.label}</option>
-                ))}
-              </select>
-            </div>
+                <div className="text-center">
+                  <div className="text-lg font-bold text-gray-900">{size.label}</div>
+                  <div className="text-xs text-gray-500 mt-1">
+                    {size.width} × {size.height}
+                  </div>
+                </div>
+                {size.popular && (
+                  <div className="absolute -top-2 -right-2 bg-gradient-to-r from-orange-400 to-pink-500 
+                                text-white text-xs px-2 py-1 rounded-full font-semibold">
+                    推荐
+                  </div>
+                )}
+                {selectedPresetSize === size.label && (
+                  <motion.div
+                    layoutId="selectedSize"
+                    className="absolute inset-0 border-2 border-blue-500 rounded-xl bg-blue-500/10"
+                    transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                  />
+                )}
+              </motion.button>
+            ))}
+            
+            {/* 自定义选项 */}
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => setSelectedPresetSize('')}
+              className={`relative p-4 rounded-xl border-2 transition-all duration-300 ${
+                !selectedPresetSize
+                  ? 'border-purple-500 bg-purple-50/50 shadow-lg shadow-purple-500/20'
+                  : 'border-gray-200 bg-white/50 hover:border-gray-300 hover:bg-white/80'
+              }`}
+            >
+              <div className="text-center">
+                <div className="text-lg font-bold text-gray-900">自定义</div>
+                <div className="text-xs text-gray-500 mt-1">自由设置</div>
+              </div>
+              {!selectedPresetSize && (
+                <motion.div
+                  layoutId="selectedSize"
+                  className="absolute inset-0 border-2 border-purple-500 rounded-xl bg-purple-500/10"
+                  transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                />
+              )}
+            </motion.button>
+          </div>
 
+          {/* 自定义尺寸输入 */}
+          <AnimatePresence>
             {!selectedPresetSize && (
-              <>
+              <motion.div 
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className="grid grid-cols-2 gap-4"
+              >
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    自定义宽度 (px)
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    宽度 (px)
                   </label>
                   <input
                     type="number"
                     value={customWidth}
                     onChange={(e) => setCustomWidth(Math.max(1, parseInt(e.target.value) || 0))}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="input-field"
                     min="1"
                     max="10000"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    自定义高度 (px)
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    高度 (px)
                   </label>
                   <input
                     type="number"
                     value={customHeight}
                     onChange={(e) => setCustomHeight(Math.max(1, parseInt(e.target.value) || 0))}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="input-field"
                     min="1"
                     max="10000"
                   />
                 </div>
-              </>
+              </motion.div>
             )}
-          </div>
-
-          {/* 图片质量设置 */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                图片格式
-              </label>
-              <select
-                value={imageFormat}
-                onChange={(e) => setImageFormat(e.target.value as 'png' | 'jpg')}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option value="png">PNG (无损)</option>
-                <option value="jpg">JPG (有损)</option>
-              </select>
-            </div>
-
-            {imageFormat === 'jpg' && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  JPG质量 (1-100)
-                </label>
-                <input
-                  type="number"
-                  value={imageQuality}
-                  onChange={(e) => setImageQuality(Math.max(1, Math.min(100, parseInt(e.target.value) || 90)))}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  min="1"
-                  max="100"
-                />
-              </div>
-            )}
-
-            {imageFormat === 'png' && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  PNG压缩级别 (0-9)
-                </label>
-                <input
-                  type="number"
-                  value={compressionLevel}
-                  onChange={(e) => setCompressionLevel(Math.max(0, Math.min(9, parseInt(e.target.value) || 6)))}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  min="0"
-                  max="9"
-                />
-              </div>
-            )}
-          </div>
+          </AnimatePresence>
         </div>
 
-        {/* 原有的设置表单 */}
-        <div className="space-y-4">
-          <div className="grid grid-cols-1 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                系列名称
-              </label>
-              <input
-                type="text"
-                value={collectionName}
-                onChange={(e) => setCollectionName(e.target.value)}
-                placeholder={project.name}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
+        {/* 图片质量设置 */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-3">
+              图片格式
+            </label>
+            <div className="grid grid-cols-2 gap-3">
+              {[
+                { value: 'png', label: 'PNG', desc: '无损压缩' },
+                { value: 'jpg', label: 'JPG', desc: '有损压缩' }
+              ].map((format) => (
+                <motion.button
+                  key={format.value}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => setImageFormat(format.value as 'png' | 'jpg')}
+                  className={`p-4 rounded-xl border-2 transition-all duration-300 text-center ${
+                    imageFormat === format.value
+                      ? 'border-blue-500 bg-blue-50/50 shadow-lg shadow-blue-500/20'
+                      : 'border-gray-200 bg-white/50 hover:border-gray-300 hover:bg-white/80'
+                  }`}
+                >
+                  <div className="font-bold text-gray-900">{format.label}</div>
+                  <div className="text-xs text-gray-500 mt-1">{format.desc}</div>
+                </motion.button>
+              ))}
             </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                系列描述
-              </label>
-              <textarea
-                value={collectionDescription}
-                onChange={(e) => setCollectionDescription(e.target.value)}
-                placeholder={project.description}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                rows={2}
-              />
-            </div>
+          </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Base Token URI
-              </label>
+          {/* 质量设置 */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-3">
+              {imageFormat === 'jpg' ? 'JPG质量' : 'PNG压缩级别'}
+            </label>
+            <div className="space-y-3">
               <input
-                type="text"
-                value={baseTokenURI}
-                onChange={(e) => setBaseTokenURI(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                type="range"
+                value={imageFormat === 'jpg' ? imageQuality : compressionLevel}
+                onChange={(e) => {
+                  if (imageFormat === 'jpg') {
+                    setImageQuality(parseInt(e.target.value))
+                  } else {
+                    setCompressionLevel(parseInt(e.target.value))
+                  }
+                }}
+                min={imageFormat === 'jpg' ? 1 : 0}
+                max={imageFormat === 'jpg' ? 100 : 9}
+                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
+                style={{
+                  background: `linear-gradient(to right, #3b82f6 0%, #8b5cf6 ${
+                    imageFormat === 'jpg' ? imageQuality : (compressionLevel / 9) * 100
+                  }%, #e5e7eb ${
+                    imageFormat === 'jpg' ? imageQuality : (compressionLevel / 9) * 100
+                  }%, #e5e7eb 100%)`
+                }}
               />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                生成数量
-              </label>
-              <input
-                type="number"
-                value={batchSize}
-                onChange={(e) => setBatchSize(parseInt(e.target.value))}
-                min="1"
-                max="10000"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
+              <div className="text-center">
+                <span className="text-lg font-bold text-gray-900">
+                  {imageFormat === 'jpg' ? imageQuality : compressionLevel}
+                  {imageFormat === 'jpg' ? '%' : ''}
+                </span>
+              </div>
             </div>
           </div>
         </div>
+      </motion.div>
 
-        {/* 操作按钮 */}
-        <div className="space-y-4">
-          <button
-            onClick={() => {
-              updateProjectSettings()
-              generateBatch()
-            }}
-            disabled={isGenerating}
-            className="w-full flex items-center justify-center px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            {isGenerating ? (
-              <>
-                <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                生成中...
-              </>
-            ) : (
-              <>
-                <Package className="w-5 h-5 mr-2" />
-                开始生成
-              </>
-            )}
-          </button>
+      {/* 系列设置 */}
+      <motion.div 
+        initial={{ opacity: 0, x: 20 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ delay: 0.2 }}
+        className="space-y-6"
+      >
+        <h3 className="text-xl font-bold text-gray-900 flex items-center space-x-3">
+          <div className="h-8 w-8 bg-gradient-to-r from-purple-500 to-pink-600 
+                        rounded-lg flex items-center justify-center">
+            <Settings className="h-4 w-4 text-white" />
+          </div>
+          <span>系列设置</span>
+        </h3>
+        
+        <div className="grid grid-cols-1 gap-6">
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              系列名称
+            </label>
+            <input
+              type="text"
+              value={collectionName}
+              onChange={(e) => setCollectionName(e.target.value)}
+              placeholder={project.name}
+              className="input-field"
+            />
+          </div>
+          
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              系列描述
+            </label>
+            <textarea
+              value={collectionDescription}
+              onChange={(e) => setCollectionDescription(e.target.value)}
+              placeholder={project.description}
+              className="input-field resize-none"
+              rows={3}
+            />
+          </div>
 
-          {/* 进度条 */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              Base Token URI
+            </label>
+            <input
+              type="text"
+              value={baseTokenURI}
+              onChange={(e) => setBaseTokenURI(e.target.value)}
+              className="input-field"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              生成数量
+            </label>
+            <input
+              type="number"
+              value={batchSize}
+              onChange={(e) => setBatchSize(parseInt(e.target.value))}
+              min="1"
+              max="10000"
+              className="input-field"
+            />
+          </div>
+        </div>
+      </motion.div>
+
+      {/* 操作按钮 */}
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.3 }}
+        className="space-y-6"
+      >
+        <motion.button
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          onClick={() => {
+            updateProjectSettings()
+            generateBatch()
+          }}
+          disabled={isGenerating}
+          className="w-full btn-primary text-lg py-4 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {isGenerating ? (
+            <>
+              <Loader2 className="w-6 h-6 mr-3 animate-spin" />
+              生成中... ({progress}%)
+            </>
+          ) : (
+            <>
+              <Package className="w-6 h-6 mr-3" />
+              开始生成 {batchSize} 个 NFT
+            </>
+          )}
+        </motion.button>
+
+        {/* 进度条 */}
+        <AnimatePresence>
           {isGenerating && (
-            <div className="w-full bg-gray-200 rounded-full h-2.5">
+            <motion.div 
+              initial={{ opacity: 0, scaleX: 0 }}
+              animate={{ opacity: 1, scaleX: 1 }}
+              exit={{ opacity: 0, scaleX: 0 }}
+              className="progress-bar"
+            >
               <motion.div
-                className="bg-blue-600 h-2.5 rounded-full"
+                className="progress-fill"
                 style={{ width: `${progress}%` }}
                 initial={{ width: 0 }}
                 animate={{ width: `${progress}%` }}
+                transition={{ duration: 0.5, ease: "easeOut" }}
               />
-            </div>
+            </motion.div>
           )}
+        </AnimatePresence>
 
-          {/* 下载按钮 */}
+        {/* 下载按钮 */}
+        <AnimatePresence>
           {generatedNFTs.length > 0 && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <button
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="grid grid-cols-1 sm:grid-cols-2 gap-4"
+            >
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
                 onClick={() => downloadAsZip('images')}
-                className="flex items-center justify-center px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
+                className="btn-secondary flex items-center justify-center"
               >
                 <Download className="w-5 h-5 mr-2" />
-                下载图片(ZIP)
-              </button>
+                下载图片 ({generatedNFTs.length})
+              </motion.button>
               
-              <button
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
                 onClick={() => downloadAsZip('metadata')}
-                className="flex items-center justify-center px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
+                className="btn-secondary flex items-center justify-center"
               >
                 <FileText className="w-5 h-5 mr-2" />
-                下载元数据(ZIP)
-              </button>
+                下载元数据
+              </motion.button>
 
-              <button
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
                 onClick={() => downloadAsZip('all')}
-                className="flex items-center justify-center px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors sm:col-span-2"
+                className="btn-primary sm:col-span-2 flex items-center justify-center"
               >
                 <Package className="w-5 h-5 mr-2" />
-                下载全部(ZIP)
-              </button>
-            </div>
+                下载完整套装
+              </motion.button>
+            </motion.div>
           )}
-        </div>
-      </div>
+        </AnimatePresence>
+      </motion.div>
     </motion.div>
   )
 } 
