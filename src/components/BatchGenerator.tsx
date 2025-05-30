@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { useProjectStore } from '../stores/projectStore'
-import { Download, Package, Settings, FileText, Loader2 } from 'lucide-react'
+import { Download, Package, Settings, FileText, Loader2, Image as ImageIcon } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 import { NFTMetadata, GeneratedNFT } from '../types'
 import JSZip from 'jszip'
@@ -10,8 +10,17 @@ interface BatchGeneratorProps {
   projectId: string
 }
 
+// 预设尺寸选项
+const PRESET_SIZES = [
+  { label: '512x512', width: 512, height: 512 },
+  { label: '1024x1024', width: 1024, height: 1024 },
+  { label: '2048x2048', width: 2048, height: 2048 },
+  { label: '3000x3000', width: 3000, height: 3000 },
+  { label: '4000x4000', width: 4000, height: 4000 }
+]
+
 export default function BatchGenerator({ projectId }: BatchGeneratorProps) {
-  const { projects } = useProjectStore()
+  const { projects, updateProject } = useProjectStore()
   const [isGenerating, setIsGenerating] = useState(false)
   const [generatedNFTs, setGeneratedNFTs] = useState<GeneratedNFT[]>([])
   const [batchSize, setBatchSize] = useState(100)
@@ -19,9 +28,44 @@ export default function BatchGenerator({ projectId }: BatchGeneratorProps) {
   const [collectionDescription, setCollectionDescription] = useState('')
   const [baseTokenURI, setBaseTokenURI] = useState('https://your-domain.com/metadata/')
   const [progress, setProgress] = useState(0)
+  
+  // 新增状态
+  const [selectedPresetSize, setSelectedPresetSize] = useState('')
+  const [customWidth, setCustomWidth] = useState(1000)
+  const [customHeight, setCustomHeight] = useState(1000)
+  const [imageQuality, setImageQuality] = useState(90)
+  const [compressionLevel, setCompressionLevel] = useState(6)
+  const [imageFormat, setImageFormat] = useState<'png' | 'jpg'>('png')
 
   const project = projects.find(p => p.id === projectId)
   if (!project) return null
+
+  // 更新项目设置
+  const updateProjectSettings = () => {
+    if (!project) return
+
+    const width = selectedPresetSize ? 
+      PRESET_SIZES.find(size => size.label === selectedPresetSize)?.width || customWidth :
+      customWidth
+
+    const height = selectedPresetSize ?
+      PRESET_SIZES.find(size => size.label === selectedPresetSize)?.height || customHeight :
+      customHeight
+
+    updateProject(projectId, {
+      ...project,
+      settings: {
+        ...project.settings,
+        width,
+        height,
+        quality: imageQuality,
+        compressionLevel,
+        format: imageFormat,
+        presetSizes: !!selectedPresetSize,
+        customSize: !selectedPresetSize
+      }
+    })
+  }
 
   // 生成单个NFT
   const generateSingleNFT = async (tokenId: number): Promise<GeneratedNFT | null> => {
@@ -31,8 +75,17 @@ export default function BatchGenerator({ projectId }: BatchGeneratorProps) {
       const ctx = canvas.getContext('2d')
       if (!ctx) return null
 
-      canvas.width = project.settings.width
-      canvas.height = project.settings.height
+      // 使用当前设置的尺寸
+      const width = selectedPresetSize ? 
+        PRESET_SIZES.find(size => size.label === selectedPresetSize)?.width || customWidth :
+        customWidth
+
+      const height = selectedPresetSize ?
+        PRESET_SIZES.find(size => size.label === selectedPresetSize)?.height || customHeight :
+        customHeight
+
+      canvas.width = width
+      canvas.height = height
 
       // 清空画布
       ctx.fillStyle = project.settings.backgroundColor
@@ -81,17 +134,35 @@ export default function BatchGenerator({ projectId }: BatchGeneratorProps) {
         }
       }
 
+      // 根据格式和质量设置导出图片
+      let imageData: string
+      if (imageFormat === 'jpg') {
+        imageData = canvas.toDataURL('image/jpeg', imageQuality / 100)
+      } else {
+        // PNG格式不支持质量设置，但可以通过压缩级别控制文件大小
+        imageData = canvas.toDataURL('image/png')
+      }
+
       // 生成metadata
       const metadata: NFTMetadata = {
         name: `${collectionName || project.name} #${tokenId}`,
         description: collectionDescription || project.description || `Generated NFT from ${project.name}`,
-        image: `${baseTokenURI}${tokenId}.png`,
-        attributes
+        image: `${baseTokenURI}${tokenId}.${imageFormat}`,
+        attributes,
+        properties: {
+          size: {
+            width,
+            height
+          },
+          format: imageFormat,
+          quality: imageFormat === 'jpg' ? imageQuality : undefined,
+          compressionLevel: imageFormat === 'png' ? compressionLevel : undefined
+        }
       }
 
       return {
         id: tokenId,
-        imageData: canvas.toDataURL('image/png'),
+        imageData,
         metadata,
         traits: selectedTraits
       }
@@ -182,7 +253,123 @@ export default function BatchGenerator({ projectId }: BatchGeneratorProps) {
       <div className="space-y-4">
         <h2 className="text-2xl font-bold text-gray-900">批量生成</h2>
         
-        {/* 设置表单 */}
+        {/* 图片设置部分 */}
+        <div className="space-y-4 border-b border-gray-200 pb-4">
+          <h3 className="text-lg font-semibold text-gray-900 flex items-center">
+            <ImageIcon className="w-5 h-5 mr-2" />
+            图片设置
+          </h3>
+          
+          {/* 尺寸设置 */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                预设尺寸
+              </label>
+              <select
+                value={selectedPresetSize}
+                onChange={(e) => {
+                  setSelectedPresetSize(e.target.value)
+                  if (e.target.value) {
+                    const size = PRESET_SIZES.find(s => s.label === e.target.value)
+                    if (size) {
+                      setCustomWidth(size.width)
+                      setCustomHeight(size.height)
+                    }
+                  }
+                }}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="">自定义尺寸</option>
+                {PRESET_SIZES.map(size => (
+                  <option key={size.label} value={size.label}>{size.label}</option>
+                ))}
+              </select>
+            </div>
+
+            {!selectedPresetSize && (
+              <>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    自定义宽度 (px)
+                  </label>
+                  <input
+                    type="number"
+                    value={customWidth}
+                    onChange={(e) => setCustomWidth(Math.max(1, parseInt(e.target.value) || 0))}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    min="1"
+                    max="10000"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    自定义高度 (px)
+                  </label>
+                  <input
+                    type="number"
+                    value={customHeight}
+                    onChange={(e) => setCustomHeight(Math.max(1, parseInt(e.target.value) || 0))}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    min="1"
+                    max="10000"
+                  />
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* 图片质量设置 */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                图片格式
+              </label>
+              <select
+                value={imageFormat}
+                onChange={(e) => setImageFormat(e.target.value as 'png' | 'jpg')}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="png">PNG (无损)</option>
+                <option value="jpg">JPG (有损)</option>
+              </select>
+            </div>
+
+            {imageFormat === 'jpg' && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  JPG质量 (1-100)
+                </label>
+                <input
+                  type="number"
+                  value={imageQuality}
+                  onChange={(e) => setImageQuality(Math.max(1, Math.min(100, parseInt(e.target.value) || 90)))}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  min="1"
+                  max="100"
+                />
+              </div>
+            )}
+
+            {imageFormat === 'png' && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  PNG压缩级别 (0-9)
+                </label>
+                <input
+                  type="number"
+                  value={compressionLevel}
+                  onChange={(e) => setCompressionLevel(Math.max(0, Math.min(9, parseInt(e.target.value) || 6)))}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  min="0"
+                  max="9"
+                />
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* 原有的设置表单 */}
         <div className="space-y-4">
           <div className="grid grid-cols-1 gap-4">
             <div>
@@ -242,7 +429,10 @@ export default function BatchGenerator({ projectId }: BatchGeneratorProps) {
         {/* 操作按钮 */}
         <div className="space-y-4">
           <button
-            onClick={generateBatch}
+            onClick={() => {
+              updateProjectSettings()
+              generateBatch()
+            }}
             disabled={isGenerating}
             className="w-full flex items-center justify-center px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
@@ -271,6 +461,7 @@ export default function BatchGenerator({ projectId }: BatchGeneratorProps) {
             </div>
           )}
 
+          {/* 下载按钮 */}
           {generatedNFTs.length > 0 && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <button

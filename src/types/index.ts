@@ -38,13 +38,30 @@ export interface ProjectSettings {
   totalSupply: number
   backgroundColor: string
   format: 'png' | 'jpg'
+  quality: number // 图片质量 1-100
+  compressionLevel: number // PNG压缩级别 0-9
+  presetSizes: boolean // 是否使用预设尺寸
+  customSize: boolean // 是否使用自定义尺寸
 }
 
 export interface NFTMetadata {
   name: string
   description: string
   image: string
-  attributes: Attribute[]
+  attributes: {
+    trait_type: string
+    value: string
+    rarity?: number
+  }[]
+  properties?: {
+    size: {
+      width: number
+      height: number
+    }
+    format: 'png' | 'jpg'
+    quality?: number
+    compressionLevel?: number
+  }
 }
 
 export interface Attribute {
