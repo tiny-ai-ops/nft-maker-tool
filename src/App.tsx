@@ -6,6 +6,7 @@ import LoginPage from './pages/LoginPage'
 import Dashboard from './pages/Dashboard'
 import CreateProject from './pages/CreateProject'
 import ProjectEditor from './pages/ProjectEditor'
+import AuthCallback from './pages/AuthCallback'
 import Navbar from './components/Navbar'
 import { motion } from 'framer-motion'
 
@@ -45,11 +46,12 @@ function App() {
           {/* 公开页面 */}
           <Route path="/" element={<HomePage />} />
           
-          {/* 认证页面 */}
+          {/* 认证相关页面 */}
           <Route 
             path="/auth" 
             element={user ? <Navigate to="/dashboard" replace /> : <LoginPage />} 
           />
+          <Route path="/auth/callback" element={<AuthCallback />} />
           
           {/* 受保护的路由 */}
           <Route 
