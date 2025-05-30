@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import { supabase, isSupabaseConfigured } from '../lib/supabase'
+import { supabase, isSupabaseConfigured, signInWithSupabase, signUpWithSupabase } from '../lib/supabase'
 import type { User, Session } from '@supabase/supabase-js'
 import { toast } from 'react-hot-toast'
 
@@ -31,16 +31,17 @@ export const useAuthStore = create<AuthState>()(
           }
         }
 
-        const { data, error } = await supabase.auth.signUp({
-          email,
-          password,
-        })
-        
-        if (data.user) {
-          set({ user: data.user, session: data.session })
+        try {
+          const data = await signUpWithSupabase(email, password)
+          
+          if (data.user) {
+            set({ user: data.user, session: data.session })
+          }
+          
+          return { error: null }
+        } catch (error: any) {
+          return { error }
         }
-        
-        return { error }
       },
       
       signIn: async (email: string, password: string) => {
@@ -52,16 +53,17 @@ export const useAuthStore = create<AuthState>()(
           }
         }
 
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        })
-        
-        if (data.user) {
-          set({ user: data.user, session: data.session })
+        try {
+          const data = await signInWithSupabase(email, password)
+          
+          if (data.user) {
+            set({ user: data.user, session: data.session })
+          }
+          
+          return { error: null }
+        } catch (error: any) {
+          return { error }
         }
-        
-        return { error }
       },
       
       signOut: async () => {

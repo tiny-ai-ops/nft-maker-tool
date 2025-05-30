@@ -43,38 +43,47 @@
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
     <link rel="manifest" href="/site.webmanifest" />
     
-    <!-- Google Analytics GA4 -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-SW43KQNR5R"></script>
+    <!-- Google Analytics GA4 with Error Handling -->
     <script>
-      window.dataLayer = window.dataLayer || [];
-      function gtag(){dataLayer.push(arguments);}
-      gtag('js', new Date());
-      
-      gtag('config', 'G-SW43KQNR5R', {
-        page_title: document.title,
-        page_location: window.location.href,
-        page_path: window.location.pathname + window.location.search,
-        send_page_view: true
-      });
-      
-      // NFT相关的自定义事件跟踪
-      window.trackNFTEvent = function(action, category, label, value) {
-        gtag('event', action, {
-          event_category: category || 'NFT',
-          event_label: label,
-          value: value
-        });
-      };
-      
-      // 用户行为跟踪
-      window.trackUserAction = function(action, details) {
-        gtag('event', action, {
-          event_category: 'User_Action',
-          event_label: details.label || action,
-          user_type: details.userType || 'visitor',
-          feature_used: details.feature
-        });
-      };
+      // 错误处理包装的GA4脚本
+      (function() {
+        try {
+          // 检测网络环境，如果是localhost或者开发环境，跳过GA
+          if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
+            console.log('开发环境，跳过Google Analytics');
+            return;
+          }
+
+          // 尝试加载GA4脚本
+          const script = document.createElement('script');
+          script.async = true;
+          script.src = 'https://www.googletagmanager.com/gtag/js?id=G-SW43KQNR5R';
+          script.onerror = function() {
+            console.warn('Google Analytics加载失败，可能是网络环境限制');
+          };
+          document.head.appendChild(script);
+
+          // 初始化gtag
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){dataLayer.push(arguments);}
+          gtag('js', new Date());
+          gtag('config', 'G-SW43KQNR5R', {
+            // 添加错误处理
+            transport_type: 'beacon',
+            custom_parameter: 'fallback_mode'
+          });
+
+          // 设置全局gtag函数，即使GA加载失败也不会报错
+          window.gtag = gtag;
+
+        } catch (error) {
+          console.warn('Google Analytics初始化失败:', error);
+          // 提供一个空的gtag函数，避免其他代码报错
+          window.gtag = function() {
+            console.warn('Google Analytics不可用，忽略追踪调用');
+          };
+        }
+      })();
     </script>
     
     <!-- 结构化数据 -->

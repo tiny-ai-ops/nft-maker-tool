@@ -7,6 +7,7 @@ import NFTPreview from '../components/NFTPreview'
 import BatchGenerator from '../components/BatchGenerator'
 import RarityEditor from '../components/RarityEditor'
 import AutoSave from '../components/AutoSave'
+import NetworkStatus from '../components/NetworkStatus'
 
 export default function ProjectEditor() {
   const { id } = useParams<{ id: string }>()
@@ -80,8 +81,9 @@ export default function ProjectEditor() {
               </div>
             </div>
 
-            {/* 右侧：自动保存组件 */}
-            <div className="relative">
+            {/* 右侧：网络状态和自动保存组件 */}
+            <div className="flex items-center space-x-3">
+              <NetworkStatus />
               <AutoSave projectId={id} />
             </div>
           </div>
