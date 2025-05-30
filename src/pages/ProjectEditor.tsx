@@ -1,11 +1,12 @@
 import { useParams, Link } from 'react-router-dom'
 import { useProjectStore } from '../stores/projectStore'
-import { ArrowLeft, Layers, Palette, Eye, Zap } from 'lucide-react'
+import { ArrowLeft, Layers, Palette, Eye } from 'lucide-react'
 import { motion } from 'framer-motion'
 import LayerManager from '../components/LayerManager'
 import NFTPreview from '../components/NFTPreview'
 import BatchGenerator from '../components/BatchGenerator'
 import RarityEditor from '../components/RarityEditor'
+import AutoSave from '../components/AutoSave'
 
 export default function ProjectEditor() {
   const { id } = useParams<{ id: string }>()
@@ -52,52 +53,36 @@ export default function ProjectEditor() {
 
   return (
     <div className="min-h-screen hero-section pt-20">
-      {/* 头部导航 */}
+      {/* 导航栏 */}
       <motion.div 
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="nav-glass border-b-0"
+        className="bg-white/80 backdrop-blur-xl border-b border-gray-200/50 sticky top-0 z-40 mb-8"
       >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between py-6">
-            <div className="flex items-center space-x-6">
-              <Link 
-                to="/dashboard" 
-                className="btn-secondary flex items-center space-x-2"
+        <div className="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <div className="flex items-center justify-between">
+            {/* 左侧：返回按钮和项目信息 */}
+            <div className="flex items-center space-x-4">
+              <Link
+                to="/dashboard"
+                className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 
+                         transition-colors bg-gray-100 hover:bg-gray-200 px-3 py-2 rounded-lg"
               >
-                <ArrowLeft className="h-5 w-5" />
-                <span>返回</span>
+                <ArrowLeft className="h-4 w-4" />
+                <span className="font-medium">返回仪表板</span>
               </Link>
               
-              <div className="flex items-center space-x-4">
-                <div className="h-12 w-12 bg-gradient-to-br from-blue-500 via-purple-600 to-pink-500 
-                              rounded-2xl flex items-center justify-center shadow-lg shadow-blue-500/25">
-                  <Zap className="h-6 w-6 text-white" />
-                </div>
-                <div>
-                  <h1 className="text-3xl font-bold gradient-text">{project.name}</h1>
-                  {project.description && (
-                    <p className="text-gray-600 mt-1">{project.description}</p>
-                  )}
-                </div>
+              <div className="border-l border-gray-300 pl-4">
+                <h1 className="text-xl font-bold text-gray-900">{project.name}</h1>
+                <p className="text-sm text-gray-600">
+                  {project.description || '暂无描述'}
+                </p>
               </div>
             </div>
-            
-            <div className="flex items-center space-x-6 text-sm">
-              <div className="flex items-center space-x-2 px-4 py-2 bg-white/50 backdrop-blur-sm 
-                            rounded-xl border border-gray-200/50 shadow-lg shadow-gray-500/5">
-                <Eye className="h-4 w-4 text-blue-600" />
-                <span className="text-gray-700">
-                  <span className="font-semibold">{project.settings.width}×{project.settings.height}</span>
-                </span>
-              </div>
-              <div className="flex items-center space-x-2 px-4 py-2 bg-white/50 backdrop-blur-sm 
-                            rounded-xl border border-gray-200/50 shadow-lg shadow-gray-500/5">
-                <Layers className="h-4 w-4 text-purple-600" />
-                <span className="text-gray-700">
-                  <span className="font-semibold">{project.layers.length}</span> 图层
-                </span>
-              </div>
+
+            {/* 右侧：自动保存组件 */}
+            <div className="relative">
+              <AutoSave projectId={id} />
             </div>
           </div>
         </div>
