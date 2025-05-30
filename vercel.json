@@ -17,10 +17,5 @@
   ],
   "github": {
     "silent": true
-  },
-  "functions": {
-    "app/api/*.js": {
-      "maxDuration": 30
-    }
   }
 } 
