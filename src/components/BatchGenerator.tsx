@@ -1,8 +1,10 @@
 import React, { useState } from 'react'
 import { useProjectStore } from '../stores/projectStore'
-import { Download, Package, Settings, FileText } from 'lucide-react'
+import { Download, Package, Settings, FileText, Loader2 } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 import { NFTMetadata, GeneratedNFT } from '../types'
+import JSZip from 'jszip'
+import { motion } from 'framer-motion'
 
 interface BatchGeneratorProps {
   projectId: string
@@ -16,6 +18,7 @@ export default function BatchGenerator({ projectId }: BatchGeneratorProps) {
   const [collectionName, setCollectionName] = useState('')
   const [collectionDescription, setCollectionDescription] = useState('')
   const [baseTokenURI, setBaseTokenURI] = useState('https://your-domain.com/metadata/')
+  const [progress, setProgress] = useState(0)
 
   const project = projects.find(p => p.id === projectId)
   if (!project) return null
@@ -106,6 +109,7 @@ export default function BatchGenerator({ projectId }: BatchGeneratorProps) {
     }
 
     setIsGenerating(true)
+    setProgress(0)
     const generated: GeneratedNFT[] = []
 
     try {
@@ -116,9 +120,8 @@ export default function BatchGenerator({ projectId }: BatchGeneratorProps) {
         }
         
         // 更新进度
-        if (i % 10 === 0) {
-          toast.success(`已生成 ${i}/${batchSize} 个NFT`)
-        }
+        const newProgress = Math.floor((i / batchSize) * 100)
+        setProgress(newProgress)
       }
 
       setGeneratedNFTs(generated)
@@ -128,209 +131,175 @@ export default function BatchGenerator({ projectId }: BatchGeneratorProps) {
       toast.error('批量生成失败')
     } finally {
       setIsGenerating(false)
+      setProgress(0)
     }
   }
 
-  // 下载所有图片
-  const downloadImages = () => {
+  // 下载ZIP压缩包
+  const downloadAsZip = async (type: 'images' | 'metadata' | 'all') => {
     if (generatedNFTs.length === 0) {
       toast.error('请先生成NFT')
       return
     }
 
-    generatedNFTs.forEach((nft) => {
-      const link = document.createElement('a')
-      link.download = `${nft.id}.png`
-      link.href = nft.imageData
-      link.click()
-    })
-
-    toast.success('图片下载开始')
-  }
-
-  // 下载metadata文件
-  const downloadMetadata = () => {
-    if (generatedNFTs.length === 0) {
-      toast.error('请先生成NFT')
-      return
-    }
-
-    // 下载单个metadata文件
-    generatedNFTs.forEach((nft) => {
-      const blob = new Blob([JSON.stringify(nft.metadata, null, 2)], {
-        type: 'application/json'
-      })
-      const url = URL.createObjectURL(blob)
-      const link = document.createElement('a')
-      link.download = `${nft.id}.json`
-      link.href = url
-      link.click()
-      URL.revokeObjectURL(url)
-    })
-
-    toast.success('Metadata文件下载开始')
-  }
-
-  // 下载汇总报告
-  const downloadReport = () => {
-    if (generatedNFTs.length === 0) {
-      toast.error('请先生成NFT')
-      return
-    }
-
-    // 统计特征分布
-    const traitStats: { [key: string]: { [value: string]: number } } = {}
+    const zip = new JSZip()
     
-    generatedNFTs.forEach(nft => {
-      nft.metadata.attributes.forEach(attr => {
-        if (!traitStats[attr.trait_type]) {
-          traitStats[attr.trait_type] = {}
-        }
-        if (!traitStats[attr.trait_type][attr.value]) {
-          traitStats[attr.trait_type][attr.value] = 0
-        }
-        traitStats[attr.trait_type][attr.value]++
+    if (type === 'images' || type === 'all') {
+      const imagesFolder = zip.folder('images')
+      generatedNFTs.forEach((nft) => {
+        const imageData = nft.imageData.split(',')[1] // 移除 data:image/png;base64,
+        imagesFolder?.file(`${nft.id}.png`, imageData, { base64: true })
       })
-    })
-
-    const report = {
-      collection: {
-        name: collectionName || project.name,
-        description: collectionDescription || project.description,
-        totalSupply: generatedNFTs.length,
-        generatedAt: new Date().toISOString()
-      },
-      traitDistribution: traitStats,
-      nfts: generatedNFTs.map(nft => ({
-        id: nft.id,
-        traits: nft.traits,
-        attributes: nft.metadata.attributes
-      }))
     }
 
-    const blob = new Blob([JSON.stringify(report, null, 2)], {
-      type: 'application/json'
-    })
-    const url = URL.createObjectURL(blob)
+    if (type === 'metadata' || type === 'all') {
+      const metadataFolder = zip.folder('metadata')
+      generatedNFTs.forEach((nft) => {
+        metadataFolder?.file(
+          `${nft.id}.json`,
+          JSON.stringify(nft.metadata, null, 2)
+        )
+      })
+    }
+
+    const content = await zip.generateAsync({ type: 'blob' })
+    const url = URL.createObjectURL(content)
     const link = document.createElement('a')
-    link.download = `${project.name}_generation_report.json`
     link.href = url
+    link.download = `${project.name}-${type}.zip`
     link.click()
     URL.revokeObjectURL(url)
-
-    toast.success('生成报告已下载')
+    
+    toast.success('下载开始')
   }
 
   return (
-    <div className="card">
-      <div className="flex items-center space-x-2 mb-4">
-        <Package className="h-5 w-5 text-blue-600" />
-        <h3 className="text-lg font-semibold text-gray-900">批量生成</h3>
-      </div>
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="bg-white rounded-xl shadow-lg p-6 space-y-6"
+    >
+      <div className="space-y-4">
+        <h2 className="text-2xl font-bold text-gray-900">批量生成</h2>
+        
+        {/* 设置表单 */}
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                系列名称
+              </label>
+              <input
+                type="text"
+                value={collectionName}
+                onChange={(e) => setCollectionName(e.target.value)}
+                placeholder={project.name}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                系列描述
+              </label>
+              <textarea
+                value={collectionDescription}
+                onChange={(e) => setCollectionDescription(e.target.value)}
+                placeholder={project.description}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                rows={2}
+              />
+            </div>
 
-      {/* 配置区域 */}
-      <div className="space-y-4 mb-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              生成数量
-            </label>
-            <input
-              type="number"
-              value={batchSize}
-              onChange={(e) => setBatchSize(Math.max(1, parseInt(e.target.value) || 1))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              min="1"
-              max="10000"
-            />
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Base Token URI
+              </label>
+              <input
+                type="text"
+                value={baseTokenURI}
+                onChange={(e) => setBaseTokenURI(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                生成数量
+              </label>
+              <input
+                type="number"
+                value={batchSize}
+                onChange={(e) => setBatchSize(parseInt(e.target.value))}
+                min="1"
+                max="10000"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              集合名称
-            </label>
-            <input
-              type="text"
-              value={collectionName}
-              onChange={(e) => setCollectionName(e.target.value)}
-              placeholder={project.name}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
         </div>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            集合描述
-          </label>
-          <textarea
-            value={collectionDescription}
-            onChange={(e) => setCollectionDescription(e.target.value)}
-            placeholder={project.description || "输入集合描述..."}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            rows={2}
-          />
-        </div>
+        {/* 操作按钮 */}
+        <div className="space-y-4">
+          <button
+            onClick={generateBatch}
+            disabled={isGenerating}
+            className="w-full flex items-center justify-center px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            {isGenerating ? (
+              <>
+                <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                生成中...
+              </>
+            ) : (
+              <>
+                <Package className="w-5 h-5 mr-2" />
+                开始生成
+              </>
+            )}
+          </button>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            基础Token URI
-          </label>
-          <input
-            type="text"
-            value={baseTokenURI}
-            onChange={(e) => setBaseTokenURI(e.target.value)}
-            placeholder="https://your-domain.com/metadata/"
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
+          {/* 进度条 */}
+          {isGenerating && (
+            <div className="w-full bg-gray-200 rounded-full h-2.5">
+              <motion.div
+                className="bg-blue-600 h-2.5 rounded-full"
+                style={{ width: `${progress}%` }}
+                initial={{ width: 0 }}
+                animate={{ width: `${progress}%` }}
+              />
+            </div>
+          )}
+
+          {generatedNFTs.length > 0 && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <button
+                onClick={() => downloadAsZip('images')}
+                className="flex items-center justify-center px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
+              >
+                <Download className="w-5 h-5 mr-2" />
+                下载图片(ZIP)
+              </button>
+              
+              <button
+                onClick={() => downloadAsZip('metadata')}
+                className="flex items-center justify-center px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
+              >
+                <FileText className="w-5 h-5 mr-2" />
+                下载元数据(ZIP)
+              </button>
+
+              <button
+                onClick={() => downloadAsZip('all')}
+                className="flex items-center justify-center px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors sm:col-span-2"
+              >
+                <Package className="w-5 h-5 mr-2" />
+                下载全部(ZIP)
+              </button>
+            </div>
+          )}
         </div>
       </div>
-
-      {/* 操作按钮 */}
-      <div className="space-y-3">
-        <button
-          onClick={generateBatch}
-          disabled={isGenerating}
-          className="w-full btn-primary flex items-center justify-center space-x-2 disabled:opacity-50"
-        >
-          <Package className="h-4 w-4" />
-          <span>{isGenerating ? '生成中...' : `生成 ${batchSize} 个NFT`}</span>
-        </button>
-
-        {generatedNFTs.length > 0 && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-            <button
-              onClick={downloadImages}
-              className="btn-secondary flex items-center justify-center space-x-2"
-            >
-              <Download className="h-4 w-4" />
-              <span>下载图片</span>
-            </button>
-            <button
-              onClick={downloadMetadata}
-              className="btn-secondary flex items-center justify-center space-x-2"
-            >
-              <FileText className="h-4 w-4" />
-              <span>下载Metadata</span>
-            </button>
-            <button
-              onClick={downloadReport}
-              className="btn-secondary flex items-center justify-center space-x-2"
-            >
-              <Settings className="h-4 w-4" />
-              <span>下载报告</span>
-            </button>
-          </div>
-        )}
-      </div>
-
-      {/* 生成状态 */}
-      {generatedNFTs.length > 0 && (
-        <div className="mt-4 p-3 bg-green-50 rounded-lg">
-          <p className="text-sm text-green-800">
-            ✅ 已生成 {generatedNFTs.length} 个NFT，可以下载图片和metadata文件
-          </p>
-        </div>
-      )}
-    </div>
+    </motion.div>
   )
 } 
