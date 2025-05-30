@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { useAuthStore } from './stores/authStore'
+import { useAuthSync } from './hooks/useAuthSync'
 import HomePage from './pages/HomePage'
 import LoginPage from './pages/LoginPage'
 import Dashboard from './pages/Dashboard'
@@ -12,6 +13,9 @@ import { motion } from 'framer-motion'
 
 function App() {
   const { user, loading, initialize } = useAuthStore()
+  
+  // 启用认证状态同步
+  useAuthSync()
 
   useEffect(() => {
     initialize()

@@ -13,6 +13,7 @@ interface AuthState {
   signOut: () => Promise<void>
   resetPassword: (email: string) => Promise<{ error?: any }>
   initialize: () => Promise<void>
+  refreshAuthState: () => Promise<void>
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -119,6 +120,25 @@ export const useAuthStore = create<AuthState>()(
         }
         
         set({ loading: false })
+      },
+      
+      refreshAuthState: async () => {
+        try {
+          const { data: { session }, error } = await supabase.auth.getSession()
+          
+          if (error) {
+            console.error('刷新认证状态失败:', error)
+            return
+          }
+          
+          if (session) {
+            set({ user: session.user, session })
+          } else {
+            set({ user: null, session: null })
+          }
+        } catch (error) {
+          console.error('刷新认证状态异常:', error)
+        }
       },
     }),
     {

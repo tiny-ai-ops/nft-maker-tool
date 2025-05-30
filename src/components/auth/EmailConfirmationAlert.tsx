@@ -3,6 +3,7 @@ import { motion } from 'framer-motion'
 import { Mail, RefreshCw, CheckCircle, AlertTriangle } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 import { resendConfirmationEmail } from '../../lib/supabase'
+import EmailVerificationChecker from './EmailVerificationChecker'
 
 interface EmailConfirmationAlertProps {
   email: string
@@ -85,6 +86,14 @@ export default function EmailConfirmationAlert({ email, onClose }: EmailConfirma
           </div>
         </div>
       </div>
+      
+      <EmailVerificationChecker 
+        email={email} 
+        onVerified={() => {
+          toast.success('邮箱验证成功！')
+          onClose?.()
+        }}
+      />
     </motion.div>
   )
 } 
