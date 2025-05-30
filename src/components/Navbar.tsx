@@ -1,14 +1,16 @@
 import { Link, useLocation } from 'react-router-dom'
 import { useAuthStore } from '../stores/authStore'
-import { Sparkles, Home, Plus, LogOut, User, Zap } from 'lucide-react'
+import { Home, Plus, LogOut, User, Zap, LayoutDashboard } from 'lucide-react'
 import { motion } from 'framer-motion'
 
 export default function Navbar() {
   const location = useLocation()
-  const { user, logout } = useAuthStore()
+  const { user, signOut } = useAuthStore()
+  const isHomePage = location.pathname === '/'
+  const isAuthPage = location.pathname === '/auth'
 
-  const handleLogout = () => {
-    logout()
+  const handleLogout = async () => {
+    await signOut()
   }
 
   return (
@@ -39,29 +41,51 @@ export default function Navbar() {
 
           {/* 导航链接 */}
           <div className="flex items-center space-x-2">
-            <NavLink to="/" icon={Home} label="项目" isActive={location.pathname === '/'} />
-            <NavLink to="/create" icon={Plus} label="新建" isActive={location.pathname === '/create'} />
+            {/* 根据用户状态和页面显示不同的导航 */}
+            {user && !isHomePage && (
+              <>
+                <NavLink to="/dashboard" icon={LayoutDashboard} label="控制台" isActive={location.pathname === '/dashboard'} />
+                <NavLink to="/create" icon={Plus} label="新建" isActive={location.pathname === '/create'} />
+              </>
+            )}
+
+            {/* 如果在首页且未登录，显示返回首页的链接 */}
+            {!isHomePage && !isAuthPage && (
+              <NavLink to="/" icon={Home} label="首页" isActive={false} />
+            )}
 
             {/* 用户菜单 */}
-            <div className="flex items-center space-x-3 ml-6 pl-6 border-l border-gray-200/50">
-              <div className="flex items-center space-x-2 px-4 py-2 bg-white/50 backdrop-blur-sm 
-                            rounded-xl border border-gray-200/50 shadow-lg shadow-gray-500/5">
-                <User className="h-4 w-4 text-gray-600" />
-                <span className="text-sm font-medium text-gray-700">{user?.email}</span>
+            {user ? (
+              <div className="flex items-center space-x-3 ml-6 pl-6 border-l border-gray-200/50">
+                <div className="flex items-center space-x-2 px-4 py-2 bg-white/50 backdrop-blur-sm 
+                              rounded-xl border border-gray-200/50 shadow-lg shadow-gray-500/5">
+                  <User className="h-4 w-4 text-gray-600" />
+                  <span className="text-sm font-medium text-gray-700">{user.email}</span>
+                </div>
+                
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={handleLogout}
+                  className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-red-500 to-pink-600 
+                           text-white rounded-xl font-medium shadow-lg shadow-red-500/25
+                           hover:shadow-xl hover:shadow-red-500/40 transition-all duration-300"
+                >
+                  <LogOut className="h-4 w-4" />
+                  <span>退出</span>
+                </motion.button>
               </div>
-              
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={handleLogout}
-                className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-red-500 to-pink-600 
-                         text-white rounded-xl font-medium shadow-lg shadow-red-500/25
-                         hover:shadow-xl hover:shadow-red-500/40 transition-all duration-300"
-              >
-                <LogOut className="h-4 w-4" />
-                <span>退出</span>
-              </motion.button>
-            </div>
+            ) : (
+              <div className="ml-6 pl-6 border-l border-gray-200/50">
+                <Link
+                  to="/auth"
+                  className="btn-primary flex items-center space-x-2"
+                >
+                  <User className="h-4 w-4" />
+                  <span>登录</span>
+                </Link>
+              </div>
+            )}
           </div>
         </div>
       </div>

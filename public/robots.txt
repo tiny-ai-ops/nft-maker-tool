@@ -1,0 +1,30 @@
+User-agent: *
+Allow: /
+Disallow: /private/
+Disallow: /admin/
+Disallow: /api/
+Disallow: /dashboard/settings/
+Disallow: *.json$
+Disallow: /*?*
+
+# 允许抓取公共页面
+Allow: /
+Allow: /auth
+Allow: /pricing
+Allow: /blog/*
+Allow: /docs/*
+
+# 站点地图
+Sitemap: https://nft-maker.example.com/sitemap.xml
+
+# 抓取延迟 (1秒)
+Crawl-delay: 1
+
+# 特定搜索引擎设置
+User-agent: Googlebot
+Allow: /
+Crawl-delay: 1
+
+User-agent: Bingbot
+Allow: /
+Crawl-delay: 2 

@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import { useState } from 'react'
 import { useProjectStore } from '../stores/projectStore'
 import { Settings, Percent, Weight } from 'lucide-react'
 import { toast } from 'react-hot-toast'

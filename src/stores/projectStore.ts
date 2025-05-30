@@ -39,7 +39,11 @@ export const useProjectStore = create<ProjectState>()(
             height: 1000,
             totalSupply: 10000,
             backgroundColor: '#FFFFFF',
-            format: 'png'
+            format: 'png',
+            quality: 90,
+            compressionLevel: 6,
+            presetSizes: false,
+            customSize: true
           }
         }
         

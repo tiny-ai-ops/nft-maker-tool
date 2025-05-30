@@ -1,10 +1,112 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="zh-CN">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>NFT制作工具</title>
+    
+    <!-- SEO基础标签 -->
+    <title>NFT制作工具 - 专业的NFT批量生成平台 | 免费创建NFT集合</title>
+    <meta name="description" content="专业的NFT制作工具，支持批量生成、稀有度配置、智能分析。一键创建上万个独特NFT，内置IPFS上传和智能合约部署功能。免费开始您的NFT创作之旅。" />
+    <meta name="keywords" content="NFT制作工具,NFT生成器,批量创建NFT,NFT集合,数字艺术,区块链,IPFS,智能合约,NFT mint,元宇宙" />
+    <meta name="author" content="NFT Maker" />
+    <meta name="robots" content="index, follow" />
+    
+    <!-- Open Graph标签 (Facebook, LinkedIn等) -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="NFT制作工具 - 专业的NFT批量生成平台" />
+    <meta property="og:description" content="专业的NFT制作工具，支持批量生成、稀有度配置、智能分析。一键创建上万个独特NFT，免费开始您的NFT创作之旅。" />
+    <meta property="og:url" content="https://nftmaker.site" />
+    <meta property="og:image" content="https://nftmaker.site/og-image.jpg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:site_name" content="NFT Maker" />
+    <meta property="og:locale" content="zh_CN" />
+    
+    <!-- Twitter卡片标签 -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="NFT制作工具 - 专业的NFT批量生成平台" />
+    <meta name="twitter:description" content="专业的NFT制作工具，支持批量生成、稀有度配置、智能分析。一键创建上万个独特NFT。" />
+    <meta name="twitter:image" content="https://nftmaker.site/twitter-image.jpg" />
+    <meta name="twitter:creator" content="@nftmaker" />
+    
+    <!-- 规范链接 -->
+    <link rel="canonical" href="https://nftmaker.site" />
+    
+    <!-- 预连接外部资源 -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    
+    <!-- 网站图标 -->
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+    <link rel="manifest" href="/site.webmanifest" />
+    
+    <!-- Google Analytics GA4 -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-SW43KQNR5R"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      
+      gtag('config', 'G-SW43KQNR5R', {
+        page_title: document.title,
+        page_location: window.location.href,
+        page_path: window.location.pathname + window.location.search,
+        send_page_view: true
+      });
+      
+      // NFT相关的自定义事件跟踪
+      window.trackNFTEvent = function(action, category, label, value) {
+        gtag('event', action, {
+          event_category: category || 'NFT',
+          event_label: label,
+          value: value
+        });
+      };
+      
+      // 用户行为跟踪
+      window.trackUserAction = function(action, details) {
+        gtag('event', action, {
+          event_category: 'User_Action',
+          event_label: details.label || action,
+          user_type: details.userType || 'visitor',
+          feature_used: details.feature
+        });
+      };
+    </script>
+    
+    <!-- 结构化数据 -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "NFT制作工具",
+      "description": "专业的NFT制作工具，支持批量生成、稀有度配置、智能分析",
+      "url": "https://nftmaker.site",
+      "applicationCategory": "DesignApplication",
+      "operatingSystem": "Web",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD",
+        "availability": "https://schema.org/InStock"
+      },
+      "creator": {
+        "@type": "Organization",
+        "name": "NFT Maker",
+        "url": "https://nftmaker.site"
+      },
+      "featureList": [
+        "批量NFT生成",
+        "稀有度分析",
+        "IPFS集成",
+        "智能合约部署",
+        "Mint页面生成"
+      ]
+    }
+    </script>
   </head>
   <body>
     <div id="root"></div>

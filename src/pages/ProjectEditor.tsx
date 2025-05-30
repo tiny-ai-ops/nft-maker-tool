@@ -1,4 +1,3 @@
-import React from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useProjectStore } from '../stores/projectStore'
 import { ArrowLeft, Layers, Palette, Eye, Zap } from 'lucide-react'

@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import { useState } from 'react'
 import { useProjectStore } from '../stores/projectStore'
 import { Download, Package, Settings, FileText, Loader2, Image as ImageIcon, Sparkles } from 'lucide-react'
 import { toast } from 'react-hot-toast'

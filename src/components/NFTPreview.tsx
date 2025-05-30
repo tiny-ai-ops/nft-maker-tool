@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState } from 'react'
+import { useRef, useEffect, useState } from 'react'
 import { useProjectStore } from '../stores/projectStore'
 import { Shuffle, Download, RefreshCw, FileText } from 'lucide-react'
 import { toast } from 'react-hot-toast'
